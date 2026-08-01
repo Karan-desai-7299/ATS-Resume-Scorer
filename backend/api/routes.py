@@ -29,9 +29,8 @@ async def analyze_resume(
 ):
     warnings: List[str] = []
 
-
-    nlp      = request.app.state.nlp
-    embedder = request.app.state.embedder
+    nlp = request.app.state.get_nlp(request.app)
+    embedder = request.app.state.get_embedder(request.app)
 
 
     try:
@@ -123,11 +122,13 @@ async def analyze_resume(
 
 @router.get('/health')
 async def health_check(request: Request):
-    """Health check — confirms models are loaded and the API is ready."""
+    """Health check — confirms API is ready and reports lazy model status."""
+    nlp_is_loaded = getattr(request.app.state, 'nlp', None) is not None
+    embedder_is_loaded = getattr(request.app.state, 'embedder', None) is not None
     return {
         'status':          'healthy',
-        'nlp_loaded':      request.app.state.nlp is not None,
-        'embedder_loaded': request.app.state.embedder is not None,
+        'nlp_loaded':      nlp_is_loaded,
+        'embedder_loaded': embedder_is_loaded,
     }
 
 @router.get('/history')
