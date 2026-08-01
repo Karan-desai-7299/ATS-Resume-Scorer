@@ -72,24 +72,29 @@ def detect_location_info(text: str, nlp: spacy.Language) -> Dict:
         'penalty_applied':    penalty,
     }
 
-def _calculate_semantic_similarity(skill: str, text: str, embedder: SentenceTransformer) -> float:
-    #similarity = (A · B) / (|A| × |B|)
+def _calculate_semantic_similarity(skill: str, text: str, embedder: Optional[SentenceTransformer]) -> float:
+    # similarity = (A · B) / (|A| × |B|)
     if not skill or not text:
         return 0.0
-    try:
-        skill_vec  = embedder.encode(skill, convert_to_tensor=False)
-        text_vec   = embedder.encode(text,  convert_to_tensor=False)
+    if embedder is not None:
+        try:
+            skill_vec  = embedder.encode(skill, convert_to_tensor=False)
+            text_vec   = embedder.encode(text,  convert_to_tensor=False)
 
-        similarity = np.dot(skill_vec, text_vec) / (
-            np.linalg.norm(skill_vec) * np.linalg.norm(text_vec)
-        )
+            similarity = np.dot(skill_vec, text_vec) / (
+                np.linalg.norm(skill_vec) * np.linalg.norm(text_vec)
+            )
 
-        return float(max(0.0, min(1.0, similarity)))
-    except Exception as e:
-        log_warning(f"Similarity error for '{skill}': {e}", context='ats_scorer')
-        return 0.0
+            return float(max(0.0, min(1.0, similarity)))
+        except Exception as e:
+            log_warning(f"Similarity error for '{skill}': {e}", context='ats_scorer')
 
-def _skill_matches(skill: str, text: str, embedder: SentenceTransformer, threshold: float) -> Tuple[bool, float]:
+    # RapidFuzz fuzzy match fallback for low-RAM cloud deployment
+    from rapidfuzz import fuzz
+    ratio = max(fuzz.partial_ratio(skill.lower(), text.lower()), fuzz.token_set_ratio(skill.lower(), text.lower()))
+    return float(max(0.0, min(1.0, ratio / 100.0)))
+
+def _skill_matches(skill: str, text: str, embedder: Optional[SentenceTransformer], threshold: float) -> Tuple[bool, float]:
 
     #fast, o(n) directly check if skill is a substring of the text (case-insensitive)
     if skill.lower() in text.lower():
@@ -104,7 +109,7 @@ def validate_skills_with_projects(
     skills: List[str],
     projects: List[Dict],
     experience_entries: List[Dict],
-    embedder: SentenceTransformer,
+    embedder: Optional[SentenceTransformer] = None,
     threshold: float = 0.6,
 ) -> Dict:
     

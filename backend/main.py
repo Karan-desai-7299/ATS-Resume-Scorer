@@ -48,14 +48,27 @@ def get_nlp(app: FastAPI):
     return app.state.nlp
 
 def get_embedder(app: FastAPI):
-    """Lazy getter for SentenceTransformer to keep startup RAM under 50MB."""
+    """Lazy getter for SentenceTransformer to keep RAM usage low with zero-RAM fallback."""
+    if getattr(app.state, 'embedder_disabled', False):
+        return None
     if not hasattr(app.state, 'embedder') or app.state.embedder is None:
+        if os.getenv("DISABLE_HEAVY_EMBEDDER", "false").lower() in ("true", "1", "yes"):
+            logger.info("SentenceTransformer disabled via DISABLE_HEAVY_EMBEDDER env var (using RapidFuzz zero-RAM fallback).")
+            app.state.embedder = None
+            app.state.embedder_disabled = True
+            return None
+
         logger.info(f"Lazy loading SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}")
-        import torch
-        torch.set_num_threads(1)
-        from sentence_transformers import SentenceTransformer
-        app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-        logger.info(f"Loaded SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}")
+        try:
+            import torch
+            torch.set_num_threads(1)
+            from sentence_transformers import SentenceTransformer
+            app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
+            logger.info(f"Loaded SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}")
+        except Exception as err:
+            logger.warning(f"Could not load SentenceTransformer ({err}) — using RapidFuzz fallback to preserve 512MB RAM.")
+            app.state.embedder = None
+            app.state.embedder_disabled = True
         gc.collect()
     return app.state.embedder
 

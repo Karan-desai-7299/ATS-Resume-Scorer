@@ -1,9 +1,4 @@
-from typing import List, Dict
-import numpy as np
-import spacy
-from sentence_transformers import SentenceTransformer
-
-from typing import List, Dict
+from typing import List, Dict, Optional
 import numpy as np
 import spacy
 from sentence_transformers import SentenceTransformer
@@ -13,15 +8,25 @@ from rapidfuzz import fuzz
 
 
 def calculate_semantic_similarity(
-    resume_text: str, jd_text: str, embedder: SentenceTransformer
+    resume_text: str, jd_text: str, embedder: Optional[SentenceTransformer] = None
 ) -> float:
-    resume_emb = embedder.encode(resume_text[:5000], convert_to_tensor=False)
-    jd_emb     = embedder.encode(jd_text[:5000], convert_to_tensor=False)
+    if not resume_text or not jd_text:
+        return 0.0
+    if embedder is not None:
+        try:
+            resume_emb = embedder.encode(resume_text[:5000], convert_to_tensor=False)
+            jd_emb     = embedder.encode(jd_text[:5000], convert_to_tensor=False)
 
-    similarity = np.dot(resume_emb, jd_emb) / (
-        np.linalg.norm(resume_emb) * np.linalg.norm(jd_emb)
-    )
-    return float(np.clip(similarity, 0.0, 1.0))
+            similarity = np.dot(resume_emb, jd_emb) / (
+                np.linalg.norm(resume_emb) * np.linalg.norm(jd_emb)
+            )
+            return float(np.clip(similarity, 0.0, 1.0))
+        except Exception:
+            pass
+
+    from rapidfuzz import fuzz
+    ratio = fuzz.token_set_ratio(resume_text[:3000].lower(), jd_text[:3000].lower())
+    return float(np.clip(ratio / 100.0, 0.0, 1.0))
 
 
 def identify_matched_keywords(
@@ -95,8 +100,8 @@ def compare_resume_with_jd(
     resume_skills: List[str],
     jd_text: str,
     jd_keywords: List[str],
-    embedder: SentenceTransformer,
-    nlp: spacy.Language,
+    embedder: Optional[SentenceTransformer] = None,
+    nlp: Optional[spacy.Language] = None,
 ) -> Dict:
     semantic_similarity = calculate_semantic_similarity(resume_text, jd_text, embedder)
     matched_keywords    = identify_matched_keywords(resume_keywords, jd_keywords)
