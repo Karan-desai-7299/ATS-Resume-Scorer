@@ -21,11 +21,12 @@ if _cors_env:
     ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in _cors_env.split(",") if origin.strip()]
 else:
     ALLOWED_ORIGINS = [
+        # Production Vercel deployment
+        "https://frontend-react-ten-gamma.vercel.app",
+        # Local development
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-        "http://localhost:8501",
-        "http://127.0.0.1:8501",
     ]
 
 #file 
