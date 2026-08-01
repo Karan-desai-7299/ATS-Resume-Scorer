@@ -1,44 +1,100 @@
+"""
+Vercel Serverless entrypoint for ATS Resume Scorer FastAPI backend.
+
+On Vercel, weasyprint/cairo binaries are unavailable. We guard all heavy
+imports and replace them with lightweight stubs so the app starts cleanly.
+"""
 import os
 import sys
 
-# Ensure project root is in Python path for backend imports on Vercel
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
-
-# Set memory/thread constraints before any heavy imports
+# ── Environment – set BEFORE any other import ──────────────────────────────
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("TORCH_NUM_THREADS", "1")
 os.environ.setdefault("DISABLE_HEAVY_EMBEDDER", "true")
 
-# Module-level singletons (Vercel reuses the same Lambda container between warm requests)
+# Add project root to sys.path
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+# ── Stub out modules that need native binaries unavailable on Vercel ────────
+import types
+
+def _make_stub(name):
+    mod = types.ModuleType(name)
+    mod.__spec__ = None
+    sys.modules[name] = mod
+    return mod
+
+# Stub weasyprint (requires libcairo2 — not on Vercel Lambda)
+_wp = _make_stub("weasyprint")
+_wp.HTML = None
+_wp.CSS = None
+
+# ── Module-level NLP singleton (warm Lambda reuse) ──────────────────────────
 _nlp = None
-_embedder = None
 
 def _get_nlp():
     global _nlp
     if _nlp is None:
-        import spacy
         try:
-            _nlp = spacy.load("en_core_web_sm")
+            import spacy
+            _nlp = spacy.blank("en")   # blank model — no download needed
         except Exception:
-            _nlp = spacy.blank("en")
+            _nlp = None
     return _nlp
 
-def _get_embedder():
-    """Always returns None on Vercel — RapidFuzz handles matching instead."""
-    return None
+# ── Build the FastAPI app ────────────────────────────────────────────────────
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
-# Patch FastAPI app state to use module-level singletons
-from backend.main import app
+import gc
 
-# Override the lazy getter functions so app.state.get_nlp / get_embedder
-# route to module-level singletons that survive across Vercel warm calls.
-@app.on_event("startup")
-async def _set_state():
-    app.state.nlp = None
-    app.state.embedder = None
-    app.state.embedder_disabled = True
-    app.state.get_nlp = lambda _app: _get_nlp()
-    app.state.get_embedder = lambda _app: _get_embedder()
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    application.state.nlp             = None
+    application.state.embedder        = None
+    application.state.embedder_disabled = True
+    application.state.get_nlp         = lambda _app: _get_nlp()
+    application.state.get_embedder    = lambda _app: None
+    yield
+
+from backend.core.config import (
+    ALLOWED_ORIGINS, APP_TITLE, APP_DESCRIPTION, APP_VERSION,
+)
+from backend.api.routes import router
+
+app = FastAPI(
+    title=APP_TITLE,
+    description=APP_DESCRIPTION,
+    version=APP_VERSION,
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router)
+
+@app.get("/")
+async def root():
+    return {
+        "name": "ATS Resume Analyzer API",
+        "version": APP_VERSION,
+        "status": "healthy",
+        "endpoints": {
+            "POST /api/v1/analyze-resume": "Analyze a resume",
+            "GET  /api/v1/history":        "Get user history",
+            "GET  /api/v1/health":         "Health check",
+        },
+    }
