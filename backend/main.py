@@ -1,3 +1,15 @@
+import os
+import sys
+import gc
+
+# Memory optimizations for low-RAM cloud instances (e.g. Render 512MB free tier)
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["TORCH_NUM_THREADS"] = "1"
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -25,26 +37,38 @@ async def lifespan(app:FastAPI):
     else:
         logger.warning("Supabase NOT configured: SUPABASE_URL or SUPABASE_KEY environment variable is empty!")
 
-    logger.info(f'Loading spaCy NLP model: {SPACY_MODEL_PRIMARY}')
     import spacy
-    try:
-        app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
-        logger.info(f'Loaded {SPACY_MODEL_PRIMARY}')
-    except OSError:
-        logger.warning(f'{SPACY_MODEL_PRIMARY} not found — falling back to {SPACY_MODEL_SECONDARY}')
-        app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
-        logger.info(f'Loaded {SPACY_MODEL_SECONDARY} (fallback)')
+    # Try small model first on cloud servers to prevent RAM OOM, or primary model
+    spacy_models_to_try = [SPACY_MODEL_SECONDARY, SPACY_MODEL_PRIMARY, "en_core_web_sm"]
+    nlp_loaded = False
+    for model_name in spacy_models_to_try:
+        try:
+            logger.info(f'Attempting to load spaCy model: {model_name}')
+            app.state.nlp = spacy.load(model_name)
+            logger.info(f'Successfully loaded spaCy model: {model_name}')
+            nlp_loaded = True
+            break
+        except OSError:
+            continue
+
+    if not nlp_loaded:
+        logger.error('No spaCy model could be loaded! Creating blank en model fallback.')
+        app.state.nlp = spacy.blank('en')
 
     logger.info(f'Loading SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}')
+    import torch
+    torch.set_num_threads(1)
     from sentence_transformers import SentenceTransformer
     app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
     logger.info(f'Loaded {SENTENCE_TRANSFORMER_MODEL}')
 
-    logger.info('All models loaded. API is ready to serve requests.')
+    # Force memory cleanup after model initialization
+    gc.collect()
+    logger.info('All models initialized with memory optimizations. Ready to serve requests.')
 
     yield
 
-    logger.info('shutting down the api!!')
+    logger.info('Shutting down API...')
 
 app=FastAPI(
     title=APP_TITLE, 
