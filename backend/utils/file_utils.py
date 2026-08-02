@@ -4,25 +4,29 @@ import os
 from typing import Any, Callable, Dict, Optional, Tuple, TypeVar
 
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-os.makedirs(LOG_DIR, exist_ok=True)
 
 logger = logging.getLogger('ats_resume_scorer')
 logger.setLevel(logging.INFO)
 
-# Simplified file handler - only basic logs
-file_handler = logging.FileHandler(os.path.join(LOG_DIR, "ats_scorer.log"))
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(message)s'
-))
+# Try to create a file handler; on read-only filesystems (Vercel Serverless) fall back to stdout only
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+    file_handler = logging.FileHandler(os.path.join(LOG_DIR, "ats_scorer.log"))
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s'
+    ))
+    if not logger.handlers:
+        logger.addHandler(file_handler)
+except (OSError, PermissionError):
+    pass  # Read-only filesystem (e.g. Vercel) — stdout logging only
 
-# Simplified console handler
+# Console handler always added
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.WARNING)
 console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
 
-if not logger.handlers:
-    logger.addHandler(file_handler)
+if not any(isinstance(h, logging.StreamHandler) and h.stream is sys.stdout for h in logger.handlers):
     logger.addHandler(console_handler)
 
 class ATSBaseError(Exception):
