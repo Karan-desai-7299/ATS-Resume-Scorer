@@ -66,19 +66,21 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <a
-                  href="https://www.linkedin.com/in/karansinh-desai-a249a0289/"
+                  href="https://www.linkedin.com/in/karansinh-desai/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-blue-300 bg-blue-600/15 hover:bg-blue-600/30 border border-blue-500/25 rounded-lg transition-colors"
                 >
                   <ExternalLink className="w-3 h-3" /> LinkedIn
                 </a>
-                <Link
-                  to="/about"
+                <a
+                  href="https://karansinh-portfolio.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-indigo-300 bg-indigo-600/15 hover:bg-indigo-600/30 border border-indigo-500/25 rounded-lg transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5" /> Portfolio
-                </Link>
+                </a>
               </div>
             </div>
           </div>
@@ -90,7 +92,7 @@ export default function Footer() {
             © {year} ATS Resume Scorer · Built with{' '}
             <Heart className="inline w-3 h-3 text-rose-500 fill-rose-500" /> by{' '}
             <a
-              href="https://www.linkedin.com/in/karansinh-desai-a249a0289/"
+              href="https://www.linkedin.com/in/karansinh-desai/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"

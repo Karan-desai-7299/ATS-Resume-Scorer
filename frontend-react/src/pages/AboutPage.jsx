@@ -92,12 +92,20 @@ export default function AboutPage() {
           {/* Social links */}
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <a
-              href="https://www.linkedin.com/in/karansinh-desai-a249a0289/"
+              href="https://www.linkedin.com/in/karansinh-desai/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-lg shadow-blue-600/25 hover:scale-105"
             >
               <ExternalLink className="w-4 h-4" /> LinkedIn Profile
+            </a>
+            <a
+              href="https://karansinh-portfolio.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-500 rounded-xl transition-all shadow-lg shadow-purple-600/25 hover:scale-105"
+            >
+              <Globe className="w-4 h-4" /> Personal Portfolio
             </a>
             <a
               href="mailto:karansinhdesai91@gmail.com"
@@ -216,12 +224,20 @@ export default function AboutPage() {
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <a
-            href="https://www.linkedin.com/in/karansinh-desai-a249a0289/"
+            href="https://www.linkedin.com/in/karansinh-desai/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-lg shadow-blue-600/25 hover:scale-105"
           >
             <ExternalLink className="w-4 h-4" /> Connect on LinkedIn <ArrowRight className="w-4 h-4" />
+          </a>
+          <a
+            href="https://karansinh-portfolio.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white bg-purple-600 hover:bg-purple-500 rounded-xl transition-all shadow-lg shadow-purple-600/25 hover:scale-105"
+          >
+            <Globe className="w-4 h-4" /> Visit Portfolio <ArrowRight className="w-4 h-4" />
           </a>
         </div>
       </section>
