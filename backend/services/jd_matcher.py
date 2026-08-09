@@ -1,14 +1,13 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import numpy as np
 import spacy
-from sentence_transformers import SentenceTransformer
 
 from backend.utils.matching import fuzzy_match_keywords, normalize_skill
 from rapidfuzz import fuzz
 
 
 def calculate_semantic_similarity(
-    resume_text: str, jd_text: str, embedder: Optional[SentenceTransformer] = None
+    resume_text: str, jd_text: str, embedder: Any = None
 ) -> float:
     if not resume_text or not jd_text:
         return 0.0
@@ -100,7 +99,7 @@ def compare_resume_with_jd(
     resume_skills: List[str],
     jd_text: str,
     jd_keywords: List[str],
-    embedder: Optional[SentenceTransformer] = None,
+    embedder: Any = None,
     nlp: Optional[spacy.Language] = None,
 ) -> Dict:
     semantic_similarity = calculate_semantic_similarity(resume_text, jd_text, embedder)
