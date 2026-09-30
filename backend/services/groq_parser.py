@@ -8,18 +8,43 @@ from groq import Groq
 logger=logging.getLogger('ats_resume_scorer')
 
 
-GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
+GROQ_MODEL = os.getenv('GROQ_MODEL', 'openai/gpt-oss-120b')
+_cached_active_models = None
 
-FALLBACK_MODELS = [
-    GROQ_MODEL,
-    'llama-3.3-70b-versatile',
-    'llama-3.1-70b-versatile',
-    'llama3-70b-8192',
-    'llama-3.1-8b-instant',
-    'llama3-8b-8192',
-    'mixtral-8x7b-32768',
-    'gemma2-9b-it'
-]
+def _get_active_models(client: Groq) -> list[str]:
+    global _cached_active_models
+    if _cached_active_models:
+        return _cached_active_models
+
+    candidates = []
+    env_model = os.getenv('GROQ_MODEL')
+    if env_model:
+        candidates.append(env_model)
+
+    try:
+        models_data = client.models.list()
+        discovered = []
+        for m in models_data.data:
+            mid = m.id.lower()
+            if any(skip in mid for skip in ['whisper', 'prompt-guard', 'orpheus', 'safeguard', 'vision']):
+                continue
+            discovered.append(m.id)
+
+        discovered.sort(key=lambda x: 0 if '120b' in x else (1 if 'qwen' in x else (2 if '20b' in x else 3)))
+        for d in discovered:
+            if d not in candidates:
+                candidates.append(d)
+    except Exception as exc:
+        logger.warning(f"Could not fetch dynamic models from Groq: {exc}")
+
+    fallbacks = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'allam-2-7b', 'llama-3.3-70b-versatile']
+    for f in fallbacks:
+        if f not in candidates:
+            candidates.append(f)
+
+    _cached_active_models = candidates
+    logger.info(f"Groq active candidate models: {_cached_active_models}")
+    return _cached_active_models
 
 _client=None
 
@@ -87,10 +112,7 @@ Resume Text:
 {raw_text}"""
 
 def _call_groq(client: Groq, system_prompt: str, user_prompt: str, max_tokens: int = 4096, temperature: float = 0.0) -> str:
-    models_to_try = []
-    for m in FALLBACK_MODELS:
-        if m and m not in models_to_try:
-            models_to_try.append(m)
+    models_to_try = _get_active_models(client)
 
     last_exception = None
     for model_name in models_to_try:
