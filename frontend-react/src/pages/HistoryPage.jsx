@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   History, FileText, Trash2, Download, ChevronDown, ChevronUp, 
-  AlertCircle, ArrowRight, BarChart2, TrendingUp, TrendingDown, Minus
+  AlertCircle, ArrowRight, BarChart2, TrendingUp, TrendingDown, Minus, CheckCircle2, Sparkles, RefreshCw
 } from 'lucide-react'
 import { apiService } from '../services/apiService'
 import { getScoreColor, getScoreEmoji } from '../components/dashboard/ScoreDisplay'
@@ -14,16 +14,20 @@ function ScoreTrend({ scores }) {
   const previous = scores[1]
   const diff = Math.round(latest - previous)
   if (diff > 0) return (
-    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
-      <TrendingUp className="w-3.5 h-3.5" /> +{diff}
+    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+      <TrendingUp className="w-3 h-3" /> +{diff} pts
     </span>
   )
   if (diff < 0) return (
-    <span className="flex items-center gap-1 text-[10px] font-bold text-rose-400">
-      <TrendingDown className="w-3.5 h-3.5" /> {diff}
+    <span className="flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+      <TrendingDown className="w-3 h-3" /> {diff} pts
     </span>
   )
-  return <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500"><Minus className="w-3.5 h-3.5" /> 0</span>
+  return (
+    <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-800/40 px-2 py-0.5 rounded-full border border-gray-700/40">
+      <Minus className="w-3 h-3" /> 0
+    </span>
+  )
 }
 
 export default function HistoryPage() {
@@ -45,123 +49,97 @@ export default function HistoryPage() {
     }
   }
 
-  useEffect(() => { fetchHistory() }, [])
+  useEffect(() => { 
+    fetchHistory() 
+  }, [])
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this scan from your history?')) return
+    if (!window.confirm('Delete this resume analysis record?')) return
     setDeletingId(id)
     try {
-      await apiService.deleteHistory(id)
-      setHistory(prev => prev.filter(item => String(item.id) !== String(id)))
-      toast.success('Entry deleted.')
-    } catch {
-      toast.error('Failed to delete entry.')
+      await apiService.deleteHistoryItem(id)
+      setHistory(prev => prev.filter(item => item.id !== id))
+      toast.success('Record successfully removed.')
+    } catch (err) {
+      toast.error('Failed to delete history item.')
     } finally {
       setDeletingId(null)
     }
   }
 
-  const handleDownloadPdf = async (id, filename, analysisResult) => {
+  const handleDownloadPdf = async (id, filename, analysis) => {
     setDownloadingId(id)
     try {
-      let blobData
-      try {
-        blobData = await apiService.getHistoryPdf(id)
-      } catch {
-        if (analysisResult && Object.keys(analysisResult).length > 0) {
-          blobData = await apiService.generatePdf(analysisResult)
-        } else { throw new Error('No analysis data available') }
-      }
+      const blobData = await apiService.generatePdf(analysis)
       const pdfBlob = blobData instanceof Blob ? blobData : new Blob([blobData], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `ats_report_${filename || 'scan'}.pdf`)
+      link.setAttribute('download', `${filename.replace(/\.[^/.]+$/, '')}_ats_report.pdf`)
       document.body.appendChild(link)
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('PDF downloaded!')
+      toast.success('PDF report downloaded!')
     } catch (err) {
-      toast.error('Failed to download PDF.')
+      toast.error('Failed to generate PDF.')
     } finally {
       setDownloadingId(null)
     }
   }
 
-  // Compute trend from sorted history scores
   const scoreTrend = history.map(h => Number(h.ats_score || 0))
 
-  // Stats
-  const avgScore = history.length > 0 
-    ? Math.round(history.reduce((acc, h) => acc + Number(h.ats_score || 0), 0) / history.length)
-    : 0
-  const bestScore = history.length > 0 ? Math.max(...history.map(h => Number(h.ats_score || 0))) : 0
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-          <p className="text-sm font-medium text-gray-400">Loading analysis history...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6 py-4 max-w-4xl mx-auto px-4">
+    <div className="space-y-8 py-4 max-w-5xl mx-auto px-4 sm:px-6">
+      
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-800/80 pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <History className="w-7 h-7 text-indigo-400" /> Analysis History
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-bold mb-2 border border-indigo-500/20">
+            <History className="w-3.5 h-3.5" /> Track Progress
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Resume Audit History
           </h1>
-          <p className="text-xs text-gray-400 mt-1">All past ATS scans saved to your account.</p>
+          <p className="text-xs text-gray-400 mt-1">Review past scores, keyword adjustments, and track your improvements over time.</p>
         </div>
-        <div className="px-3 py-1.5 rounded-xl bg-gray-900 border border-gray-800 text-xs font-bold text-indigo-400">
-          {history.length} {history.length === 1 ? 'Scan' : 'Scans'}
-        </div>
+
+        <Link
+          to="/scorer"
+          className="btn-primary-glow flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold"
+        >
+          <Sparkles className="w-3.5 h-3.5" /> New Analysis
+        </Link>
       </div>
 
-      {/* Quick Stats Row */}
-      {history.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="glass-card p-4 rounded-2xl text-center border border-gray-800">
-            <div className="text-2xl font-extrabold text-white">{history.length}</div>
-            <div className="text-[11px] text-gray-400 font-medium mt-0.5">Total Scans</div>
-          </div>
-          <div className="glass-card p-4 rounded-2xl text-center border border-gray-800">
-            <div className="text-2xl font-extrabold text-white">{avgScore}</div>
-            <div className="text-[11px] text-gray-400 font-medium mt-0.5">Avg. Score</div>
-          </div>
-          <div className="glass-card p-4 rounded-2xl text-center border border-indigo-500/20 col-span-2 sm:col-span-1">
-            <div className="text-2xl font-extrabold text-indigo-400">{bestScore}</div>
-            <div className="text-[11px] text-gray-400 font-medium mt-0.5">Best Score</div>
-          </div>
+      {/* Loading state */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 rounded-2xl glass-card animate-shimmer border border-gray-800" />
+          ))}
         </div>
-      )}
-
-      {history.length === 0 ? (
-        <div className="text-center py-16 glass-panel rounded-3xl space-y-5 border border-indigo-500/20">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/30">
-            <AlertCircle className="w-7 h-7" />
+      ) : history.length === 0 ? (
+        <div className="text-center py-16 glass-card rounded-3xl border border-gray-800 p-8 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center mx-auto">
+            <History className="w-6 h-6" />
           </div>
-          <h3 className="text-xl font-bold text-white">No Analyses Saved Yet</h3>
+          <h3 className="text-base font-bold text-white">No Previous Audits Found</h3>
           <p className="text-xs text-gray-400 max-w-sm mx-auto">
-            Upload your resume on the ATS Scorer page to run your first analysis and view it here.
+            Upload your resume on the ATS Scorer page to run your first evaluation and access it here anytime.
           </p>
           <Link
             to="/scorer"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-lg shadow-indigo-600/25"
+            className="btn-primary-glow inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold"
           >
-            🎯 Go to ATS Scorer <ArrowRight className="w-4 h-4" />
+            Go to ATS Scorer <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       ) : (
         <div className="space-y-3">
           {history.map((entry, idx) => {
-            const filename = entry.filename || entry.resume_name || 'resume'
+            const filename = entry.filename || entry.resume_name || 'Resume Document'
             const atsScore = Number(entry.ats_score || 0)
             const createdAt = entry.created_at || entry.date || ''
             const analysis = entry.analysis_result || {}
@@ -174,21 +152,23 @@ export default function HistoryPage() {
             return (
               <div
                 key={entry.id || idx}
-                className={`glass-card rounded-2xl overflow-hidden transition-all border ${isExpanded ? 'border-indigo-500/30 neon-border' : 'border-gray-800 hover:border-gray-700'}`}
+                className={`glass-card rounded-2xl overflow-hidden transition-all border ${
+                  isExpanded ? 'border-indigo-500/40' : 'border-gray-800 hover:border-gray-700'
+                }`}
               >
-                {/* Row Header */}
+                {/* Header Row */}
                 <div
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                   className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-gray-800/20 transition-colors"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
                     <div className="p-2.5 rounded-xl bg-gray-900 border border-gray-800 text-indigo-400 shrink-0">
-                      <FileText className="w-4 h-4" />
+                      <FileText className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-sm font-bold text-white truncate">{filename}</h4>
-                      <p className="text-[11px] text-gray-500">
-                        {createdAt ? new Date(createdAt).toLocaleString() : 'Unknown date'}
+                      <p className="text-[11px] text-gray-400">
+                        {createdAt ? new Date(createdAt).toLocaleString() : 'Audited recently'}
                       </p>
                     </div>
                   </div>
@@ -198,21 +178,23 @@ export default function HistoryPage() {
                       <ScoreTrend scores={[scoreTrend[idx], scoreTrend[idx + 1]]} />
                     )}
                     <div
-                      className="px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1"
+                      className="px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5"
                       style={{ backgroundColor: color.bg, color: color.text, border: `1px solid ${color.border}` }}
                     >
-                      {emoji} {Math.round(atsScore)}/100
+                      <span>{emoji}</span>
+                      <span className="tabular-nums">{Math.round(atsScore)}/100</span>
                     </div>
-                    <button className="text-gray-500 hover:text-white transition-colors p-0.5">
+                    <button type="button" className="text-gray-400 hover:text-white p-1">
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Expanded Content */}
+                {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="px-4 sm:px-5 pb-5 pt-2 border-t border-gray-800/80 bg-gray-950/30 space-y-4 animate-fade-in">
-                    {/* Component scores */}
+                  <div className="px-4 sm:px-5 pb-5 pt-3 border-t border-gray-800/80 bg-gray-950/40 space-y-4">
+                    
+                    {/* Component Score Pills */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                       {[
                         { label: 'Formatting', val: cs.formatting, max: 20 },
@@ -223,12 +205,14 @@ export default function HistoryPage() {
                       ].map(({ label, val, max }) => {
                         const pct = Math.round(((val || 0) / max) * 100)
                         return (
-                          <div key={label} className="p-3 rounded-xl bg-gray-900/60 border border-gray-800 space-y-1.5">
+                          <div key={label} className="p-3 rounded-xl bg-gray-900/60 border border-gray-800 space-y-1">
                             <div className="text-[11px] text-gray-400 font-medium">{label}</div>
-                            <div className="text-sm font-bold text-white">{Math.round(val || 0)}<span className="text-gray-600 text-[11px] font-normal">/{max}</span></div>
+                            <div className="text-sm font-bold text-white tabular-nums">
+                              {Math.round(val || 0)} <span className="text-gray-500 text-[11px] font-normal">/{max}</span>
+                            </div>
                             <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                               <div
-                                className="h-full rounded-full bg-indigo-500 progress-bar-inner"
+                                className="h-full rounded-full bg-indigo-500"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -237,52 +221,38 @@ export default function HistoryPage() {
                       })}
                     </div>
 
+                    {/* JD Match indicator */}
                     {jdComp && (
                       <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-between text-xs">
                         <span className="text-indigo-300 font-semibold flex items-center gap-1.5">
-                          <BarChart2 className="w-3.5 h-3.5" /> JD Match
+                          <BarChart2 className="w-4 h-4" /> Role Description Match
                         </span>
-                        <span className="text-indigo-400 font-bold">{Math.round(jdComp.match_percentage || 0)}%</span>
+                        <span className="text-indigo-400 font-extrabold">{Math.round(jdComp.match_percentage || 0)}%</span>
                       </div>
                     )}
 
-                    {/* Strengths preview */}
-                    {analysis.strengths && analysis.strengths.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Top Strengths</p>
-                        {analysis.strengths.slice(0, 2).map((s, i) => (
-                          <p key={i} className="text-[11px] text-gray-300 flex items-start gap-1.5">
-                            <span className="text-emerald-500 mt-px">✓</span> {s}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-end gap-2 pt-1">
+                    {/* Action buttons */}
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-800/60">
                       <button
+                        type="button"
                         onClick={() => handleDownloadPdf(entry.id, filename, analysis)}
                         disabled={downloadingId === entry.id}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-sm disabled:opacity-50"
                       >
-                        {downloadingId === entry.id
-                          ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          : <Download className="w-3.5 h-3.5" />
-                        }
-                        PDF Report
+                        {downloadingId === entry.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        Download PDF
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDelete(entry.id)}
                         disabled={deletingId === entry.id}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/20 rounded-xl transition-all disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/20 rounded-xl transition-all disabled:opacity-50"
                       >
-                        {deletingId === entry.id
-                          ? <div className="w-3.5 h-3.5 border-2 border-rose-400 border-t-white rounded-full animate-spin" />
-                          : <Trash2 className="w-3.5 h-3.5" />
-                        }
+                        {deletingId === entry.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                         Delete
                       </button>
                     </div>
+
                   </div>
                 )}
               </div>
@@ -290,6 +260,7 @@ export default function HistoryPage() {
           })}
         </div>
       )}
+
     </div>
   )
 }

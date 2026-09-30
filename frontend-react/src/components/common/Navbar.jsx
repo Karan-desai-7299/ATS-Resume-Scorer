@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Target, Home, BarChart2, History, BookOpen, LogIn, LogOut, Menu, X, User, ChevronDown, Info } from 'lucide-react'
+import { 
+  Target, Home, BarChart3, History, BookOpen, 
+  LogIn, LogOut, Menu, X, User, Sparkles, Info, ExternalLink 
+} from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import AuthModal from '../auth/AuthModal'
 
@@ -14,12 +17,11 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Home', path: '/', icon: Home },
-    { name: 'ATS Scorer', path: '/scorer', icon: BarChart2 },
+    { name: 'ATS Scorer', path: '/scorer', icon: BarChart3 },
     { name: 'History', path: '/history', icon: History },
     { name: 'Resources', path: '/resources', icon: BookOpen },
     { name: 'About', path: '/about', icon: Info },
   ]
-
 
   const openAuth = (tab) => {
     setAuthTab(tab)
@@ -29,33 +31,35 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     setUserDropdownOpen(false)
+    setMobileMenuOpen(false)
     await signOut()
   }
 
-  // Abbreviated email for display
   const shortEmail = user?.email
     ? user.email.length > 22
-      ? user.email.slice(0, 10) + '…' + user.email.slice(user.email.lastIndexOf('@'))
+      ? user.email.slice(0, 10) + '...' + user.email.slice(user.email.lastIndexOf('@'))
       : user.email
     : ''
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-gray-800/80"
-        style={{ background: 'rgba(9, 13, 22, 0.92)', backdropFilter: 'blur(20px)' }}>
+      <header className="sticky top-0 z-50 w-full border-b border-gray-800/80 bg-[#080c14]/90 backdrop-blur-xl transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="p-2 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform">
-                <Target className="w-4 h-4" />
+            <Link to="/" className="flex items-center gap-3 group shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform duration-200">
+                <Target className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-white tracking-tight">ATS Resume Scorer</span>
-                <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded">
-                  PRO AI
-                </span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold text-white tracking-tight">ATS Resume Scorer</span>
+                  <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 rounded-full tracking-wide">
+                    <Sparkles className="w-2.5 h-2.5" /> PRO AI
+                  </span>
+                </div>
+                <span className="text-[10px] text-gray-400 -mt-0.5 hidden sm:inline">AI Resume Intelligence</span>
               </div>
             </Link>
 
@@ -68,49 +72,52 @@ export default function Navbar() {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all ${
+                    className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all ${
                       isActive
-                        ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
+                        ? 'text-white bg-indigo-600/20 border border-indigo-500/30 shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
                     {link.name}
                   </Link>
                 )
               })}
             </nav>
 
-            {/* Desktop Auth / User */}
-            <div className="hidden md:flex items-center gap-2">
+            {/* Right Action / Auth */}
+            <div className="hidden md:flex items-center gap-3">
               {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-900 border border-gray-700/80 hover:border-indigo-500/40 transition-all text-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800/80 border border-gray-700/60 transition-colors text-xs text-gray-200"
                   >
-                    <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[11px] font-bold">
                       {user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
-                    <span className="text-gray-200 text-xs max-w-[130px] truncate">{shortEmail}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                    <span className="max-w-[120px] truncate font-medium">{shortEmail}</span>
                   </button>
 
                   {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-52 rounded-xl border border-gray-800 shadow-2xl z-50 overflow-hidden"
-                      style={{ background: 'rgba(13, 17, 30, 0.98)', backdropFilter: 'blur(16px)' }}>
-                      <div className="px-4 py-3 border-b border-gray-800">
-                        <p className="text-xs text-gray-500 font-medium">Signed in as</p>
-                        <p className="text-xs text-white font-semibold truncate mt-0.5">{user.email}</p>
+                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#0d1322] border border-gray-800 shadow-xl py-1 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-3 py-2 border-b border-gray-800/60">
+                        <p className="text-[11px] text-gray-400">Signed in as</p>
+                        <p className="font-semibold text-white truncate">{user.email}</p>
                       </div>
-                      <div className="p-1.5">
-                        <button
-                          onClick={handleSignOut}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <LogOut className="w-3.5 h-3.5" /> Sign Out
-                        </button>
-                      </div>
+                      <Link
+                        to="/history"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+                      >
+                        <History className="w-3.5 h-3.5 text-indigo-400" /> Analysis History
+                      </Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      >
+                        <LogOut className="w-3.5 h-3.5" /> Sign Out
+                      </button>
                     </div>
                   )}
                 </div>
@@ -118,72 +125,87 @@ export default function Navbar() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openAuth('signin')}
-                    className="px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white bg-gray-800/60 hover:bg-gray-800 border border-gray-700/80 rounded-xl transition-all"
+                    className="px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white transition-colors"
                   >
                     Sign In
                   </button>
                   <button
                     onClick={() => openAuth('signup')}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-lg shadow-indigo-600/25"
+                    className="btn-primary-glow px-4 py-1.5 rounded-xl text-xs font-bold"
                   >
-                    <LogIn className="w-4 h-4" /> Get Started
+                    Get Started Free
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            {/* Mobile Hamburger Button */}
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/60 transition-colors"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
+        {/* Mobile Dropdown Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-800 px-4 pt-2 pb-5 space-y-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon
-              const isActive = location.pathname === link.path
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
-                    isActive ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'text-gray-300 hover:bg-gray-800'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" /> {link.name}
-                </Link>
-              )
-            })}
-            <div className="pt-3 border-t border-gray-800/80 space-y-2">
+          <div className="md:hidden border-t border-gray-800/80 bg-[#080c14]/98 px-4 pt-3 pb-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="space-y-1">
+              {navLinks.map((link) => {
+                const Icon = link.icon
+                const isActive = location.pathname === link.path
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      isActive
+                        ? 'text-white bg-indigo-600/20 border border-indigo-500/30'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-800/40'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
+                    {link.name}
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Mobile Auth Bar */}
+            <div className="pt-3 border-t border-gray-800/80">
               {user ? (
-                <>
-                  <div className="flex items-center gap-2 px-4 py-2">
-                    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                      {user.email?.[0]?.toUpperCase() || 'U'}
-                    </div>
-                    <span className="text-xs text-gray-300 truncate max-w-[200px]">{user.email}</span>
+                <div className="space-y-2">
+                  <div className="px-3 py-1.5 flex items-center justify-between text-xs">
+                    <span className="text-gray-400">Account</span>
+                    <span className="font-semibold text-white truncate max-w-[180px]">{user.email}</span>
                   </div>
                   <button
-                    onClick={() => { handleSignOut(); setMobileMenuOpen(false) }}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl"
+                    onClick={handleSignOut}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold hover:bg-rose-500/20 transition-colors"
                   >
-                    <LogOut className="w-4 h-4" /> Sign Out
+                    <LogOut className="w-3.5 h-3.5" /> Sign Out
                   </button>
-                </>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => openAuth('signin')} className="py-2.5 text-sm font-semibold text-gray-200 bg-gray-800 rounded-xl">
+                  <button
+                    onClick={() => openAuth('signin')}
+                    className="py-2.5 rounded-xl bg-gray-900 border border-gray-700/60 text-xs font-bold text-gray-200 hover:bg-gray-800 transition-colors"
+                  >
                     Sign In
                   </button>
-                  <button onClick={() => openAuth('signup')} className="py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl">
-                    Sign Up
+                  <button
+                    onClick={() => openAuth('signup')}
+                    className="btn-primary-glow py-2.5 rounded-xl text-xs font-bold text-center"
+                  >
+                    Get Started Free
                   </button>
                 </div>
               )}
@@ -192,12 +214,14 @@ export default function Navbar() {
         )}
       </header>
 
-      {/* Click-outside to close user dropdown */}
-      {userDropdownOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setUserDropdownOpen(false)} />
+      {/* Auth Modal */}
+      {isAuthOpen && (
+        <AuthModal
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          initialTab={authTab}
+        />
       )}
-
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialTab={authTab} />
     </>
   )
 }

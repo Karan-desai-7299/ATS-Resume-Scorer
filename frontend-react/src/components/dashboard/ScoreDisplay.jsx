@@ -1,174 +1,181 @@
-import React, { useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef } from 'react'
+import { Award, CheckCircle2, AlertTriangle, TrendingUp, Sparkles, ShieldCheck } from 'lucide-react'
 
 export function getScoreColor(score) {
-  if (score >= 85) return { text: '#34d399', bg: 'rgba(52,211,153,0.10)', border: 'rgba(52,211,153,0.25)', stroke: '#34d399', label: 'Excellent' }
-  if (score >= 70) return { text: '#a3e635', bg: 'rgba(163,230,53,0.10)',  border: 'rgba(163,230,53,0.25)',  stroke: '#a3e635', label: 'Good'      }
-  if (score >= 55) return { text: '#fbbf24', bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.25)',  stroke: '#fbbf24', label: 'Average'    }
-  return            { text: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.25)', stroke: '#f87171', label: 'Needs Work' }
+  if (score >= 85) return { 
+    text: '#10b981', 
+    bg: 'rgba(16, 185, 129, 0.12)', 
+    border: 'rgba(16, 185, 129, 0.3)', 
+    stroke: '#10b981', 
+    label: 'Top Tier &bull; High ATS Pass Rate',
+    badge: 'Excellent' 
+  }
+  if (score >= 70) return { 
+    text: '#22c55e', 
+    bg: 'rgba(34, 197, 94, 0.12)', 
+    border: 'rgba(34, 197, 94, 0.3)', 
+    stroke: '#22c55e', 
+    label: 'Strong &bull; Good ATS Pass Rate',
+    badge: 'Good' 
+  }
+  if (score >= 55) return { 
+    text: '#f59e0b', 
+    bg: 'rgba(245, 158, 11, 0.12)', 
+    border: 'rgba(245, 158, 11, 0.3)', 
+    stroke: '#f59e0b', 
+    label: 'Moderate &bull; Needs Keyword Tuning',
+    badge: 'Average' 
+  }
+  return { 
+    text: '#f43f5e', 
+    bg: 'rgba(244, 63, 94, 0.12)', 
+    border: 'rgba(244, 63, 94, 0.3)', 
+    stroke: '#f43f5e', 
+    label: 'Attention Needed &bull; High Risk of Rejection',
+    badge: 'Needs Work' 
+  }
 }
 
 export function getScoreEmoji(score) {
-  if (score >= 90) return '🌟'
-  if (score >= 80) return '✅'
-  if (score >= 70) return '👍'
-  if (score >= 55) return '⚠️'
-  return '🔴'
+  if (score >= 85) return '⭐'
+  if (score >= 70) return '✅'
+  if (score >= 55) return '⚡'
+  return '⚠️'
 }
 
-// Separate the ring into its own element — keeps text outside SVG
 function ScoreRing({ score, color }) {
   const r = 54
-  const circ = 2 * Math.PI * r        // ≈ 339.3
-  const offset = circ - (circ * Math.min(score, 100)) / 100
+  const circ = 2 * Math.PI * r // ~339.3
+  const offset = circ - (circ * Math.min(Math.max(score, 0), 100)) / 100
   const circleRef = useRef(null)
 
   useEffect(() => {
     const el = circleRef.current
     if (!el) return
-    el.style.strokeDashoffset = String(circ)   // start at 0 fill
-    requestAnimationFrame(() => {
+    el.style.strokeDashoffset = String(circ)
+    const t = setTimeout(() => {
       el.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1)'
       el.style.strokeDashoffset = String(offset)
-    })
-  }, [score])   // eslint-disable-line
+    }, 50)
+    return () => clearTimeout(t)
+  }, [score, offset, circ])
 
   return (
-    <svg
-      viewBox="0 0 120 120"
-      width="148"
-      height="148"
-      style={{ flexShrink: 0 }}
-    >
-      <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      {/* Track */}
-      <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="10" />
-      {/* Progress */}
-      <circle
-        ref={circleRef}
-        cx="60" cy="60" r={r}
-        fill="none"
-        stroke={color.stroke}
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={circ}
-        transform="rotate(-90 60 60)"
-        filter="url(#glow)"
-      />
-    </svg>
+    <div className="relative flex items-center justify-center">
+      <svg viewBox="0 0 120 120" className="w-36 h-36 sm:w-44 sm:h-44 shrink-0">
+        <circle 
+          cx="60" 
+          cy="60" 
+          r={r} 
+          fill="none" 
+          stroke="rgba(255, 255, 255, 0.08)" 
+          strokeWidth="10" 
+        />
+        <circle
+          ref={circleRef}
+          cx="60" 
+          cy="60" 
+          r={r}
+          fill="none"
+          stroke={color.stroke}
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ}
+          transform="rotate(-90 60 60)"
+          style={{ filter: `drop-shadow(0 0 8px ${color.stroke}40)` }}
+        />
+      </svg>
+      {/* Centered Score Number */}
+      <div className="absolute flex flex-col items-center justify-center text-center">
+        <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white tabular-nums">
+          {Math.round(score)}
+        </span>
+        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest -mt-1">
+          out of 100
+        </span>
+      </div>
+    </div>
   )
 }
 
-const BARS = [
-  { label: 'Format',   key: 'formatting',        max: 20 },
-  { label: 'Keywords', key: 'keywords',           max: 25 },
-  { label: 'Content',  key: 'content',            max: 25 },
-  { label: 'Skills',   key: 'skill_validation',   max: 15 },
-  { label: 'ATS',      key: 'ats_compatibility',  max: 15 },
-]
-
 export default function ScoreDisplay({ analysis }) {
-  const score  = Number(analysis?.ATS_score ?? analysis?.ats_score ?? 0)
-  const interp = analysis?.interpretation || ''
-  const color  = getScoreColor(score)
-  const emoji  = getScoreEmoji(score)
-  const cs     = analysis?.component_scores || {}
+  if (!analysis) return null
+
+  const score = Math.round(Number(analysis.ATS_score ?? analysis.ats_score ?? 0))
+  const color = getScoreColor(score)
+  const interpretation = analysis.interpretation || 'Comprehensive ATS Evaluation'
+  const components = analysis.component_scores || {}
 
   return (
-    <div className="space-y-5">
-      <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight text-center">
-        📊 Analysis Results
-      </h2>
-
-      {/* ── Gauge + Bars row ── */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
-
-        {/* Gauge — ring + overlay text stacked via relative wrapper */}
-        <div className="relative shrink-0" style={{ width: 148, height: 148 }}>
-          <ScoreRing score={score} color={color} />
-
-          {/* Center text — absolute inside the same 148×148 box */}
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none"
-            style={{ padding: '20px' }}   /* keep text inside the ring */
-          >
-            <span
-              className="text-4xl font-extrabold leading-none tabular-nums"
-              style={{ color: color.text }}
-            >
-              {Math.round(score)}
-            </span>
-            <span className="text-xs font-semibold text-gray-400 mt-0.5">/100</span>
-            <span
-              className="text-[10px] font-bold uppercase tracking-widest mt-1 leading-tight"
-              style={{ color: color.text }}
-            >
-              {color.label}
-            </span>
+    <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-gray-800/80 shadow-xl space-y-6">
+      
+      {/* Header bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800/80 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400">
+            <Award className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Executive ATS Performance</h2>
+            <p className="text-xs text-gray-400">Overall compatibility rating for Fortune 500 ATS screening algorithms</p>
           </div>
         </div>
 
-        {/* Bars — fill remaining width */}
-        <div className="flex-1 w-full space-y-3">
-          {BARS.map(({ label, key, max }) => {
-            const val = Number(cs[key] || 0)
-            const pct = Math.min((val / max) * 100, 100)
-            const barColor =
-              pct >= 80 ? '#34d399' :
-              pct >= 60 ? '#a3e635' :
-              pct >= 40 ? '#fbbf24' : '#f87171'
+        <span 
+          className="px-3.5 py-1.5 rounded-full text-xs font-bold border"
+          style={{ color: color.text, backgroundColor: color.bg, borderColor: color.border }}
+        >
+          {color.badge} &bull; {score}/100
+        </span>
+      </div>
 
-            return (
-              <div key={key}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-semibold text-gray-300">{label}</span>
-                  <span className="font-bold tabular-nums" style={{ color: barColor }}>
-                    {Math.round(val)}<span className="text-gray-600 font-normal text-[11px]">/{max}</span>
-                  </span>
-                </div>
-                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full progress-bar-inner"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: barColor,
-                      boxShadow: `0 0 6px ${barColor}50`,
-                    }}
-                  />
-                </div>
+      {/* Main Score & Summary Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+        
+        {/* Left: Animated Score Gauge */}
+        <div className="flex flex-col items-center justify-center text-center space-y-3">
+          <ScoreRing score={score} color={color} />
+          <p className="text-xs font-medium" style={{ color: color.text }}>
+            {color.label.replace('&bull;', '•')}
+          </p>
+        </div>
+
+        {/* Right 2 cols: Interpretation & Quick Pillars */}
+        <div className="md:col-span-2 space-y-5">
+          <div>
+            <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">Evaluation Verdict</span>
+            <p className="text-sm sm:text-base text-gray-200 font-medium leading-relaxed mt-1">
+              {interpretation}
+            </p>
+          </div>
+
+          {/* Component Mini Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Formatting', val: components.formatting, max: 20 },
+              { label: 'Keywords', val: components.keywords, max: 25 },
+              { label: 'Content', val: components.content, max: 25 },
+              { label: 'Skills Validated', val: components.skill_validation, max: 15 },
+              { label: 'Compatibility', val: components.ats_compatibility, max: 15 },
+            ].map((c) => (
+              <div key={c.label} className="p-3 rounded-xl bg-gray-900/60 border border-gray-800 text-center">
+                <span className="text-[11px] text-gray-400 block truncate">{c.label}</span>
+                <span className="text-sm font-bold text-white mt-0.5 block tabular-nums">
+                  {Math.round(c.val || 0)} <span className="text-xs text-gray-500 font-normal">/ {c.max}</span>
+                </span>
               </div>
-            )
-          })}
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-gray-400 pt-1">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Tested against modern parsers (Workday, Greenhouse, Lever, Taleo)</span>
+          </div>
         </div>
+
       </div>
 
-      {/* Score badge row */}
-      <div className="flex justify-center">
-        <div
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold border"
-          style={{ color: color.text, borderColor: color.border, backgroundColor: color.bg }}
-        >
-          {emoji} {color.label} ATS Score — {Math.round(score)}/100
-        </div>
-      </div>
-
-      {/* Interpretation */}
-      {interp && (
-        <div
-          className="p-3 sm:p-4 rounded-xl text-xs sm:text-sm text-gray-200 font-medium leading-relaxed text-center border"
-          style={{ backgroundColor: color.bg, borderColor: color.border }}
-        >
-          💡 {interp}
-        </div>
-      )}
     </div>
   )
 }
