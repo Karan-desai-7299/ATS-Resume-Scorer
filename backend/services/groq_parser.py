@@ -8,7 +8,18 @@ from groq import Groq
 logger=logging.getLogger('ats_resume_scorer')
 
 
-GROQ_MODEL='llama-3.3-70b-versatile'
+GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
+
+FALLBACK_MODELS = [
+    GROQ_MODEL,
+    'llama-3.3-70b-versatile',
+    'llama-3.1-70b-versatile',
+    'llama3-70b-8192',
+    'llama-3.1-8b-instant',
+    'llama3-8b-8192',
+    'mixtral-8x7b-32768',
+    'gemma2-9b-it'
+]
 
 _client=None
 
@@ -75,19 +86,34 @@ Important instructions:
 Resume Text:
 {raw_text}"""
 
-def _call_groq(client:Groq, system_prompt:str, user_prompt:str)->str:
+def _call_groq(client: Groq, system_prompt: str, user_prompt: str, max_tokens: int = 4096, temperature: float = 0.0) -> str:
+    models_to_try = []
+    for m in FALLBACK_MODELS:
+        if m and m not in models_to_try:
+            models_to_try.append(m)
 
-    response=client.chat.completions.create(
-        model=GROQ_MODEL, 
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_prompt}
-        ],
-        temperature=0.0,
-        max_tokens=4096
-    )
+    last_exception = None
+    for model_name in models_to_try:
+        try:
+            logger.info(f"Calling Groq API with model: {model_name}")
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as exc:
+            last_exception = exc
+            err_msg = str(exc)
+            logger.warning(f"Groq API call failed with model '{model_name}': {err_msg}")
+            continue
 
-    return response.choices[0].message.content.strip()
+    logger.error(f"All Groq model fallbacks failed. Last error: {last_exception}")
+    raise last_exception
 
 def _try_parse_json(text: str) -> dict | None:
 
@@ -334,16 +360,7 @@ Detected Skills: {', '.join(skills[:15]) if skills else 'Not detected'}
     )
 
     try:
-        response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question},
-            ],
-            max_tokens=400,
-            temperature=0.5,
-        )
-        return response.choices[0].message.content.strip()
+        return _call_groq(client, system_prompt, question, max_tokens=400, temperature=0.5)
     except Exception as exc:
         logger.error(f"ask_resume_question failed: {exc}")
         raise
