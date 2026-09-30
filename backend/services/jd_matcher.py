@@ -44,19 +44,44 @@ def identify_missing_keywords(
 
 
 def analyze_skills_gap(
-    resume_skills: List[str], jd_text: str, nlp: spacy.Language
+    resume_skills: List[str], jd_text: str, nlp: Optional[spacy.Language] = None
 ) -> List[str]:
-    doc       = nlp(jd_text[:5000])
+    if not jd_text:
+        return []
+
     jd_skills = set()
+    doc = None
+    if nlp is not None:
+        try:
+            doc = nlp(jd_text[:5000])
+        except Exception:
+            doc = None
 
-    for ent in doc.ents:
-        if ent.label_ in ['PRODUCT', 'ORG', 'LANGUAGE']:
-            jd_skills.add(ent.text.lower())
+    if doc is not None:
+        try:
+            for ent in doc.ents:
+                if ent.label_ in ['PRODUCT', 'ORG', 'LANGUAGE']:
+                    jd_skills.add(ent.text.lower())
+        except Exception:
+            pass
 
-    for chunk in doc.noun_chunks:
-        ct = chunk.text.lower().strip()
-        if 1 <= len(ct.split()) <= 4:
-            jd_skills.add(ct)
+        try:
+            for chunk in doc.noun_chunks:
+                ct = chunk.text.lower().strip()
+                if 1 <= len(ct.split()) <= 4:
+                    jd_skills.add(ct)
+        except Exception:
+            # Fallback when noun_chunks / parser is not loaded (e.g. spacy.blank("en") on serverless)
+            tokens = [t.text.lower().strip() for t in doc if not t.is_stop and not t.is_punct and len(t.text.strip()) > 1]
+            for t in tokens:
+                jd_skills.add(t)
+            for i in range(len(tokens) - 1):
+                jd_skills.add(f"{tokens[i]} {tokens[i+1]}")
+    else:
+        import re
+        words = [w.lower() for w in re.findall(r'\b[a-zA-Z0-9+#.-]{2,}\b', jd_text[:5000])]
+        for w in words:
+            jd_skills.add(w)
 
     # Normalize resume skills for comparison
     resume_normalized = {normalize_skill(s) for s in resume_skills}

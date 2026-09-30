@@ -26,10 +26,14 @@ def detect_location_info(text: str, nlp: spacy.Language) -> Dict:
     locations = []
 
     #method01: spacy NER
-    doc = nlp(text)
-    for ent in doc.ents:
-        if ent.label_ in ['GPE', 'LOC']:
-            locations.append({'text': ent.text, 'type': ent.label_.lower(), 'start': ent.start_char})
+    if nlp is not None:
+        try:
+            doc = nlp(text)
+            for ent in doc.ents:
+                if ent.label_ in ['GPE', 'LOC']:
+                    locations.append({'text': ent.text, 'type': ent.label_.lower(), 'start': ent.start_char})
+        except Exception:
+            pass
 
     #moetod02: street address regx
     for match in re.finditer(STREET_ADDRESS_PATTERN, text, re.IGNORECASE):
